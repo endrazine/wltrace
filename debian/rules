@@ -1,0 +1,16 @@
+#!/usr/bin/make -f
+
+# The configure logic for this is backwards. We need this before checking
+# for elfutils (ELF_C_READ_MMAP)
+CFLAGS=-D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	dh_auto_configure -- --with-libunwind=no --disable-werror
+
+override_dh_install:
+	dh_install
+	rm -f debian/ltrace/usr/share/doc/ltrace/COPYING
+	rm -f debian/ltrace/usr/share/doc/ltrace/INSTALL

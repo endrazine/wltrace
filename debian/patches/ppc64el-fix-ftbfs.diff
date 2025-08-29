@@ -1,0 +1,48 @@
+Description: Fix backport of support for upstream patch to support ppc64el
+ While backporting the following patch from upstream to the 0.7.3 version:
+
+ commit 7f20cb21a0d021ab3b12d8a5187beb728f339b0f
+ Author: Thierry Fauck <thierry@linux.vnet.ibm.com>
+ AuthorDate: Tue May 13 07:48:24 2014 -0400
+ Commit: Petr Machata <pmachata@gmail.com>
+ CommitDate: Wed Nov 11 19:08:43 2015 +0100
+ 
+     Support for powerpc64 arch ppc64el
+ 
+     Signed-off-by: Thierry Fauck <thierry@linux.vnet.ibm.com>
+ 
+             Add support for ppc64le proc and ELF ABIv2.
+             Provides support for irelative and wchar
+
+ We kept the code jumping to the "fail" label from the "arch_elf_add_plt_entry"
+ function. Unfortunately, the "fail" label does not appear before the same
+ statement in the original version and in the 0.7.3 version.
+ In 0.7.3, the statements following the "fail" label assume the existence of
+ the libsym variable. Therefore, while jumping to this label too soon, we go
+ over the declaration and assignment of the libsym variable.
+
+ This is nowadays detected by GCC as a use of uninitialized variable.
+
+Author: Olivier Gayot <olivier.gayot@canonical.com>
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/ltrace/+bug/1967518
+Forwarded: not-needed
+Last-Update: 2022-04-07
+---
+This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
+Index: b/sysdeps/linux-gnu/ppc/plt.c
+===================================================================
+--- a/sysdeps/linux-gnu/ppc/plt.c
++++ b/sysdeps/linux-gnu/ppc/plt.c
+@@ -769,8 +769,10 @@
+ 	 * or allow -1 a valid return code.  */
+ 	GElf_Addr plt_slot_value;
+ 	int rc = read_plt_slot_value(proc, plt_slot_addr, &plt_slot_value);
+-	if (rc < 0 && !lte->arch.elfv2_abi)
+-		goto fail;
++	if (rc < 0 && !lte->arch.elfv2_abi) {
++		free(name);
++		return plt_fail;
++	}
+ 
+ 	struct library_symbol *libsym = malloc(sizeof(*libsym));
+ 	if (libsym == NULL) {

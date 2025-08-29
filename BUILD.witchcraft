@@ -1,0 +1,14 @@
+
+Create separate build directory
+
+	mkdir build -p
+	cd build
+
+
+Call configure script with libunwind support, and do without blocking on errors
+
+ 	../configure --with-libunwind --disable-werror
+
+Compile and install
+	make
+	make install
